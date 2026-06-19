@@ -1,8 +1,8 @@
 class Tokentrail < Formula
   desc "Local ledger and trail-map for Claude Code spend"
   homepage "https://github.com/loschenbd/tokentrail"
-  url "https://github.com/loschenbd/tokentrail/archive/refs/tags/v0.2.0.tar.gz"
-  sha256 "dc8c824695efaf587dc42112d8d0e1902a8f3392285d3a51280e0b4ed8d9a76c"
+  url "https://github.com/loschenbd/tokentrail/archive/refs/tags/v0.2.2.tar.gz"
+  sha256 "1fe6127b57ea577f08229bdb1ae4d0282fd89537108ffb77fb434c442c675eed"
   license "MIT"
 
   # Pin node@20 so better-sqlite3's prebuilt binary is available. Newer
@@ -40,3 +40,4 @@ class Tokentrail < Formula
     assert_match version.to_s, shell_output("#{bin}/tokentrail --version")
   end
 end
+
