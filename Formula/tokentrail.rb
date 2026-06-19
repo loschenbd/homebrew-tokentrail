@@ -1,6 +1,6 @@
 class Tokentrail < Formula
   desc "Local ledger and trail-map for Claude Code spend"
-  homepage "https://github.com/loschenbd/tokentrail"
+  homepage "https://tokentrail.benjaminloschen.com"
   url "https://github.com/loschenbd/tokentrail/archive/refs/tags/v0.2.2.tar.gz"
   sha256 "1fe6127b57ea577f08229bdb1ae4d0282fd89537108ffb77fb434c442c675eed"
   license "MIT"
