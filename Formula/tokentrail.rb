@@ -5,7 +5,12 @@ class Tokentrail < Formula
   sha256 "dc8c824695efaf587dc42112d8d0e1902a8f3392285d3a51280e0b4ed8d9a76c"
   license "MIT"
 
-  depends_on "node"
+  # Pin node@20 so better-sqlite3's prebuilt binary is available. Newer
+  # `node` (currently v26) doesn't have a matching better-sqlite3 prebuild
+  # yet, forcing a multi-minute node-gyp source build that also requires
+  # an up-to-date Xcode Command Line Tools install. node 20 matches the
+  # CLI's engines.node and dodges both problems.
+  depends_on "node@20"
   depends_on "python" => :build
 
   def install
