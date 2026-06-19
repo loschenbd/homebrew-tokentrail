@@ -13,8 +13,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install from this checkout's formula
+        # Modern brew rejects loose ./Formula/foo.rb — formulas must live in
+        # a tap directory. Symlink the PR checkout as the user's tap so brew
+        # can resolve `loschenbd/tokentrail/tokentrail` to this exact code.
         run: |
-          brew install --build-from-source ./Formula/tokentrail.rb
+          set -euxo pipefail
+          TAP_DIR="$(brew --repository)/Library/Taps/loschenbd/homebrew-tokentrail"
+          mkdir -p "$(dirname "$TAP_DIR")"
+          rm -rf "$TAP_DIR"
+          ln -sf "$GITHUB_WORKSPACE" "$TAP_DIR"
+          brew install --build-from-source loschenbd/tokentrail/tokentrail
 
       - name: Verify the binary works
         run: |
@@ -22,4 +30,4 @@ jobs:
           tokentrail --help | head -5
 
       - name: brew test
-        run: brew test tokentrail
+        run: brew test loschenbd/tokentrail/tokentrail
