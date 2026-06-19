@@ -9,8 +9,21 @@ class Tokentrail < Formula
   depends_on "python" => :build
 
   def install
-    system "npm", "install", *std_npm_args
-    bin.install_symlink Dir["#{libexec}/bin/*"]
+    # Don't use std_npm_args — it forces --build-from-source on native modules,
+    # which makes better-sqlite3 compile via node-gyp (multi-minute step).
+    # Plain `npm install` lets it fetch the npm-prebuilt binary (~5s).
+    system "npm", "install", "--no-audit", "--no-fund", "--include=dev"
+
+    # The source tarball has TypeScript sources but no dist/ (gitignored).
+    # package.json's bin points at dist/src/index.js, so we have to build.
+    system "npm", "run", "build"
+
+    # Drop devDeps now that the build is done — keeps libexec lean.
+    system "npm", "prune", "--omit=dev"
+
+    libexec.install Dir["*"]
+    chmod 0755, libexec/"dist/src/index.js"
+    bin.install_symlink libexec/"dist/src/index.js" => "tokentrail"
   end
 
   livecheck do
@@ -19,6 +32,6 @@ class Tokentrail < Formula
   end
 
   test do
-    assert_match "tokentrail", shell_output("#{bin}/tokentrail --version")
+    assert_match version.to_s, shell_output("#{bin}/tokentrail --version")
   end
 end
