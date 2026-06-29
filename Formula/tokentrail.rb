@@ -45,27 +45,35 @@ class Tokentrail < Formula
   end
 
   def post_install
-    # Symlink the launcher into /Applications/ so it shows up in
-    # Spotlight, LaunchPad, and Finder without the user having to
-    # cp/mv anything by hand. The symlink lets `brew uninstall`
-    # clean it up automatically.
+    # Symlink the launcher into ~/Applications/ — user-writable so
+    # brew (running as the user, not root) can create the link
+    # without sudo. Spotlight and LaunchPad index ~/Applications/
+    # alongside /Applications/, so the app is fully discoverable.
+    # Users who want it in /Applications/ instead can drag it from
+    # ~/Applications/ in Finder.
     app_src = libexec/"scripts/macos-app/dist/Tokentrail.app"
     return unless app_src.exist?
 
-    app_dest = Pathname.new("/Applications/Tokentrail.app")
+    apps_dir = Pathname.new(ENV.fetch("HOME")) / "Applications"
+    apps_dir.mkpath
+    app_dest = apps_dir / "Tokentrail.app"
     app_dest.rmtree if app_dest.exist? || app_dest.symlink?
     app_dest.make_symlink(app_src)
   end
 
   def caveats
     <<~EOS
-      Tokentrail.app has been installed in /Applications/. Click the icon
-      to open the dashboard. On first launch, the app prompts you to run
-      `tokentrail init`, which installs the Claude Code Stop hook, the
-      SwiftBar menubar widget (if SwiftBar is present), and the launchd
-      dashboard daemon.
+      Tokentrail.app has been installed in ~/Applications/. It's
+      Spotlight-searchable (Cmd-Space "Tokentrail") and appears in
+      LaunchPad. Drag it to /Applications/ from Finder if you'd
+      rather have it in the system Applications folder or your Dock.
 
-      You can also skip the GUI and run `tokentrail init` directly.
+      On first launch, the app prompts you to run `tokentrail init`,
+      which installs the Claude Code Stop hook, the SwiftBar menubar
+      widget (if SwiftBar is present), and the launchd dashboard
+      daemon.
+
+      Power users can skip the GUI and run `tokentrail init` directly.
     EOS
   end
 
