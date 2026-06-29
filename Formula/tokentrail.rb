@@ -1,8 +1,8 @@
 class Tokentrail < Formula
   desc "Local ledger and trail-map for Claude Code spend"
   homepage "https://tokentrail.benjaminloschen.com"
-  url "https://github.com/loschenbd/tokentrail/archive/refs/tags/v0.2.2.tar.gz"
-  sha256 "1fe6127b57ea577f08229bdb1ae4d0282fd89537108ffb77fb434c442c675eed"
+  url "https://github.com/loschenbd/tokentrail/archive/refs/tags/v0.2.4.tar.gz"
+  sha256 "63233d647f2ac8dd7d3450eb332e29db2018c31690c2e6dcc905c00cd91e4426"
   license "MIT"
 
   # Pin node@20 so better-sqlite3's prebuilt binary is available. Newer
@@ -26,9 +26,55 @@ class Tokentrail < Formula
     # Drop devDeps now that the build is done — keeps libexec lean.
     system "npm", "prune", "--omit=dev"
 
+    # Build the macOS .app launcher BEFORE staging libexec, so the
+    # Makefile's relative paths resolve against the unpacked source
+    # tree (not the brew prefix). sips + iconutil ship with macOS so
+    # no extra build deps are needed. If something goes wrong (e.g.
+    # sips missing in an unusual environment), degrade gracefully —
+    # the CLI is the primary deliverable.
+    begin
+      system "make", "-C", "scripts/macos-app", "app"
+    rescue
+      opoo "Tokentrail.app build failed — CLI is installed but the " \
+           "GUI launcher won't be available. `brew reinstall` to retry."
+    end
+
     libexec.install Dir["*"]
     chmod 0755, libexec/"dist/src/index.js"
     bin.install_symlink libexec/"dist/src/index.js" => "tokentrail"
+  end
+
+  def post_install
+    # Symlink the launcher into ~/Applications/ — user-writable so
+    # brew (running as the user, not root) can create the link
+    # without sudo. Spotlight and LaunchPad index ~/Applications/
+    # alongside /Applications/, so the app is fully discoverable.
+    # Users who want it in /Applications/ instead can drag it from
+    # ~/Applications/ in Finder.
+    app_src = libexec/"scripts/macos-app/dist/Tokentrail.app"
+    return unless app_src.exist?
+
+    apps_dir = Pathname.new(ENV.fetch("HOME")) / "Applications"
+    apps_dir.mkpath
+    app_dest = apps_dir / "Tokentrail.app"
+    app_dest.rmtree if app_dest.exist? || app_dest.symlink?
+    app_dest.make_symlink(app_src)
+  end
+
+  def caveats
+    <<~EOS
+      Tokentrail.app has been installed in ~/Applications/. It's
+      Spotlight-searchable (Cmd-Space "Tokentrail") and appears in
+      LaunchPad. Drag it to /Applications/ from Finder if you'd
+      rather have it in the system Applications folder or your Dock.
+
+      On first launch, the app prompts you to run `tokentrail init`,
+      which installs the Claude Code Stop hook, the SwiftBar menubar
+      widget (if SwiftBar is present), and the launchd dashboard
+      daemon.
+
+      Power users can skip the GUI and run `tokentrail init` directly.
+    EOS
   end
 
   livecheck do
@@ -40,4 +86,3 @@ class Tokentrail < Formula
     assert_match version.to_s, shell_output("#{bin}/tokentrail --version")
   end
 end
-
