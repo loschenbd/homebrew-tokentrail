@@ -11,7 +11,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   bump:
@@ -32,7 +31,12 @@ jobs:
         id: sha
         run: |
           V="${{ steps.version.outputs.v }}"
-          SHA=$(curl -sL "https://github.com/loschenbd/tokentrail/archive/refs/tags/v${V}.tar.gz" | shasum -a 256 | cut -d' ' -f1)
+          # -f: a missing tag must fail the job, not hash GitHub's 404 page.
+          SHA=$(curl -fsL "https://github.com/loschenbd/tokentrail/archive/refs/tags/v${V}.tar.gz" | shasum -a 256 | cut -d' ' -f1)
+          if [ "${#SHA}" -ne 64 ]; then
+            echo "::error::Bad sha256 for v${V}: '${SHA}'"
+            exit 1
+          fi
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Update formula
@@ -43,20 +47,20 @@ jobs:
           sed -i.bak -E "s|sha256 \".*\"|sha256 \"${SHA}\"|" Formula/tokentrail.rb
           rm Formula/tokentrail.rb.bak
 
-      - name: Open PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Push straight to main — no PR. A personal tap has one consumer; the
+      # PR flow just produced redundant bump PRs whenever the release script
+      # updated the formula directly (it races this workflow and always won).
+      # If the formula is already at the target version, this is a no-op, so
+      # manual bumps and this automation can coexist in either order.
+      - name: Commit and push
         run: |
           V="${{ steps.version.outputs.v }}"
           if git diff --quiet Formula/tokentrail.rb; then
-            echo "::notice::Formula already at v${V} (url + sha256 unchanged) — no bump PR needed."
+            echo "::notice::Formula already at v${V} (url + sha256 unchanged) — nothing to do."
             exit 0
           fi
-          BRANCH="bump/v${V}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "${BRANCH}"
           git add Formula/tokentrail.rb
-          git commit -m "tokentrail v${V}"
-          git push -u origin "${BRANCH}"
-          gh pr create --title "tokentrail v${V}" --body "Auto-bump from upstream tag v${V}."
+          git commit -m "tokentrail ${V}"
+          git push origin HEAD:main
