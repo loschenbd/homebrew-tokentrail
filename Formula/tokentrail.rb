@@ -26,15 +26,18 @@ class Tokentrail < Formula
     # Drop devDeps now that the build is done — keeps libexec lean.
     system "npm", "prune", "--omit=dev"
 
-    # Build the macOS .app launcher BEFORE staging libexec. The .app
-    # ends up at scripts/macos-app/dist/Tokentrail.app inside the
-    # source tree; `tokentrail init` later symlinks it into
-    # ~/Applications/ (post_install can't write there reliably).
+    # Build the native SwiftUI menu-bar app BEFORE staging libexec. build.sh
+    # emits scripts/menubar-native/dist/Tokentrail.app inside the source tree;
+    # `tokentrail init` later copies it into ~/Applications/ and registers a
+    # LaunchAgent (post_install can't write there reliably). Built from source
+    # here, so it's ad-hoc signed with no com.apple.quarantine — Gatekeeper
+    # runs it without a prompt. Guarded: if the Swift toolchain is missing the
+    # CLI still installs and `tokentrail init` prints a build hint.
     begin
-      system "make", "-C", "scripts/macos-app", "app"
+      system "bash", "scripts/menubar-native/build.sh"
     rescue
-      opoo "Tokentrail.app build failed — CLI installed, but `tokentrail " \
-           "init` won't have a launcher to install."
+      opoo "Menu-bar app build failed (Swift toolchain?) — CLI installed. Run " \
+           "`xcode-select --install`, then `tokentrail init` to add it."
     end
 
     libexec.install Dir["*"]
@@ -48,11 +51,16 @@ class Tokentrail < Formula
 
         tokentrail init
 
-      That symlinks the SwiftBar plugin, registers the launchd dashboard
-      daemon, links the Claude Code skills, installs the Stop hook in
-      the current repo's .claude/settings.json, and drops a clickable
-      Tokentrail.app into ~/Applications/ (Spotlight-searchable; drag
-      to /Applications/ from Finder if you'd rather have it there).
+      That registers the launchd dashboard daemon, links the Claude Code
+      skills, installs the Stop hook in the current repo's
+      .claude/settings.json, and installs the native Tokentrail menu-bar app
+      into ~/Applications/ (launched via a LaunchAgent; your running total
+      appears within ~60s).
+
+      The menu-bar app is built from source during install, so it's ad-hoc
+      signed and runs without a Gatekeeper prompt. If it didn't build, install
+      the Swift toolchain with `xcode-select --install` and re-run
+      `tokentrail init`.
     EOS
   end
 
