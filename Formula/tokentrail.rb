@@ -1,8 +1,8 @@
 class Tokentrail < Formula
   desc "Local ledger and trail-map for Claude Code spend"
   homepage "https://tokentrail.benjaminloschen.com"
-  url "https://github.com/loschenbd/tokentrail/archive/refs/tags/v0.13.0.tar.gz"
-  sha256 "74b1e77d08fa8339d08d846d4fb986396cd225094bb457159703936832142bdb"
+  url "https://github.com/loschenbd/tokentrail/archive/refs/tags/v0.13.1.tar.gz"
+  sha256 "2c510b9b860241d3179207410f096367de734a38a943b516dc9b9c3430cfaf77"
   license "MIT"
 
   # Pin node@20 so better-sqlite3's prebuilt binary is available. Newer
